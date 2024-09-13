@@ -5,107 +5,115 @@ using System;
 using System.Linq;
 using System.IO;
 using System.IO.Compression;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace XMLyzeLibrary.Excel
 {
+    public enum TokenType
+    {
+        Command,
+        Indentation,
+        Argument
+    }
+
+    public class Token
+    {
+        public TokenType Type { get; set; }
+        public string Value { get; set; } = string.Empty;
+
+        public override string ToString()
+        {
+            return $"Token(Type: {Type}, Value: \"{Value}\")";
+        }
+    }
+
     public static class EF
     {
-        public static List<List<Cell>> GetRows(SheetData sheetData)
+        public static List<List<string>> ReadExcelSheet(string filePath)
         {
-            List<List<Cell>> fullRows = [];
+            var rowsData = new List<List<string>>();
 
-            foreach (Row row in sheetData.Elements<Row>())
+            using (SpreadsheetDocument document = SpreadsheetDocument.Open(filePath, false))
             {
-                List<Cell> fullRow = [];
-                int currentColumnIndex = 0;
+                if (document.WorkbookPart is null)
+                    throw new Exception("Could not find Excel file");
+                WorkbookPart workbookPart = document.WorkbookPart;
 
-                foreach (Cell cell in row.Elements<Cell>())
+                if (workbookPart.Workbook.Sheets is null)
+                    throw new Exception("Could not find Excel sheets");
+                Sheet sheet = workbookPart.Workbook.Sheets.GetFirstChild<Sheet>() ?? throw new Exception("Could not find Excel sheet");
+                string sheetId = sheet.Id?.Value ?? throw new Exception("Could not find Excel sheet id");
+
+                WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheetId);
+                SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
+
+                foreach (Row row in sheetData.Elements<Row>())
                 {
-                    if (cell.CellReference != null)
+                    var rowData = new List<string>();
+                    foreach (Cell cell in row.Elements<Cell>())
                     {
-                        string columnName = GetColumnName(cell.CellReference!);
-                        int cellColumnIndex = GetColumnIndexFromName(columnName);
-
-                        // Fill in missing cells
-                        while (currentColumnIndex < cellColumnIndex)
+                        int colIndex = GetColumnIndex(cell.CellReference!);
+                        while (rowData.Count < colIndex - 1)
                         {
-                            fullRow.Add(new Cell());
-                            currentColumnIndex++;
+                            rowData.Add(string.Empty);
                         }
-
-                        fullRow.Add(cell);
-                        currentColumnIndex++;
+                        rowData.Add(GetCellValue(cell, workbookPart));
                     }
-
+                    rowsData.Add(rowData);
                 }
-
-                // Ensure row has enough cells up to the desired column count
-                // int totalColumns = 10; // Adjust based on your expected maximum column count
-                // while (fullRow.Count < totalColumns)
-                // {
-                //     fullRow.Add(new Cell());
-                // }
-
-                fullRows.Add(fullRow);
             }
 
-            return fullRows;
+            return rowsData;
         }
 
-        public static int GetColumnIndexFromName(string columnName)
+        private static string GetCellValue(Cell cell, WorkbookPart workbookPart)
         {
+            if (workbookPart.SharedStringTablePart is null)
+                throw new Exception("Could not find shared string table in Excel sheet");
+
+            string value = cell.InnerText;
+
+            if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString)
+            {
+                return workbookPart.SharedStringTablePart.SharedStringTable
+                    .Elements<SharedStringItem>().ElementAt(int.Parse(value)).InnerText;
+            }
+
+            return value;
+        }
+
+        private static int GetColumnIndex(string cellReference)
+        {
+            string columnLetter = new string(cellReference.Where(char.IsLetter).ToArray());
             int columnIndex = 0;
-            foreach (char c in columnName)
+
+            foreach (char letter in columnLetter)
             {
-                columnIndex *= 26;
-                columnIndex += (c - 'A' + 1);
-            }
-            return columnIndex - 1;
-        }
-
-        public static string GetColumnName(string cellReference)
-        {
-            // Extract column name from cell reference (e.g., "A1" -> "A")
-            return new string(cellReference.Where(c => char.IsLetter(c)).ToArray());
-        }
-
-        public static List<string> ExtractImages(string excelFilePath, string imageFolderPath)
-        {
-            List<string> imageFilePaths = [];
-
-            using (FileStream zipToOpen = new FileStream(excelFilePath, FileMode.Open))
-            using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Read))
-            {
-                var mediaEntries = archive.Entries.Where(e => e.FullName.StartsWith("xl/media/")).ToList();
-
-                if (!mediaEntries.Any())
-                {
-                    Console.WriteLine("No images found in the workbook.");
-                }
-                else
-                {
-                    foreach (var mediaEntry in mediaEntries)
-                    {
-                        using (Stream stream = mediaEntry.Open())
-                        using (MemoryStream memoryStream = new MemoryStream())
-                        {
-                            stream.CopyTo(memoryStream);
-                            byte[] imageBytes = memoryStream.ToArray();
-
-                            // Create images folder
-                            if (!Directory.Exists(imageFolderPath))
-                                Directory.CreateDirectory(imageFolderPath);
-
-                            string newImagePath = $"{imageFolderPath}/{mediaEntry.Name}";
-                            imageFilePaths.Add(newImagePath);
-                            File.WriteAllBytes(newImagePath, imageBytes);
-                            Console.WriteLine($"Image saved to {newImagePath}");
-                        }
-                    }
-                }
+                columnIndex = columnIndex * 26 + (letter - 'A' + 1);
             }
 
-            return imageFilePaths;
+            return columnIndex;
+        }
+
+        public static List<Token> TokenizeRow(List<string> row)
+        {
+            var tokens = new List<Token>();
+
+            if (!string.IsNullOrEmpty(row[0]))
+            {
+                tokens.Add(new Token { Type = TokenType.Command, Value = row[0] });
+            }
+            else
+            {
+                tokens.Add(new Token { Type = TokenType.Indentation, Value = "" });
+            }
+
+            for (int i = 1; i < row.Count; i++)
+            {
+                tokens.Add(new Token { Type = TokenType.Argument, Value = row[i] });
+            }
+
+            return tokens;
         }
     }
 }

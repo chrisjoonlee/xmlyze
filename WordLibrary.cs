@@ -96,5 +96,34 @@ namespace XMLyzeLibrary.Word
 
             return pageBorders;
         }
+
+        public static void AppendToBody(Body body, OpenXmlElement element)
+        {
+            SectionProperties? finalSectionProps = body.Elements<SectionProperties>().LastOrDefault();
+            if (finalSectionProps != null)
+                finalSectionProps.InsertBeforeSelf(element);
+            else
+                body.Append(element);
+        }
+
+        public static void AppendToBody(Body body, List<OpenXmlElement> elements)
+        {
+            SectionProperties? finalSectionProps = body.Elements<SectionProperties>().LastOrDefault();
+            if (finalSectionProps != null)
+                foreach (OpenXmlElement element in elements)
+                    finalSectionProps.InsertBeforeSelf(element);
+            else
+                body.Append(elements);
+        }
+
+        public static void AppendToBody(Body body, List<Paragraph> paragraphs)
+        {
+            SectionProperties? finalSectionProps = body.Elements<SectionProperties>().LastOrDefault();
+            if (finalSectionProps != null)
+                foreach (Paragraph paragraph in paragraphs)
+                    finalSectionProps.InsertBeforeSelf(paragraph);
+            else
+                body.Append(paragraphs);
+        }
     }
 }

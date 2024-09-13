@@ -25,10 +25,10 @@ namespace XMLyze
             }
 
             // Paths
-            string excelFilePath = $"docs/{args[0]}";
+            string excelFilePath = $"{args[0]}";
             string baseFileName = Path.GetFileNameWithoutExtension(args[0]);
-            string wordFilePath = $"docs/{args[1]}";
-            string imagesFolderPath = $"docs/{baseFileName}-imgs";
+            string wordFilePath = $"{args[1]}";
+            string imagesFolderPath = $"{baseFileName}-imgs";
 
             // Open Excel file, create Word package
             using (SpreadsheetDocument spreadsheetDocument = SpreadsheetDocument.Open(excelFilePath, false))
@@ -47,14 +47,16 @@ namespace XMLyze
                 WorksheetPart worksheetPart = workbookPart.WorksheetParts.First();
                 SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
 
-                // Access the media folder and extract images
-                List<string> imageFilePaths = EF.ExtractImages(excelFilePath, imagesFolderPath);
-
-                // Populate new Word package
-                (MainDocumentPart mainPart, WXML.Body body) = WF.PopulateNewWordPackage(newPackage, 1134, "blue");
-
-                // Get excel data
-                List<List<Cell>> rows = EF.GetRows(sheetData);
+                List<List<string>> rows = EF.ReadExcelSheet(excelFilePath);
+                foreach (List<string> row in rows)
+                {
+                    List<Token> tokens = EF.TokenizeRow(row);
+                    Console.WriteLine("-----");
+                    foreach (Token token in tokens)
+                    {
+                        Console.WriteLine(token);
+                    }
+                }
             }
         }
     }

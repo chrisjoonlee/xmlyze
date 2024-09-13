@@ -12,8 +12,8 @@ namespace XMLyzeLibrary.Excel
     public enum TokenType
     {
         Command,
-        Indentation,
-        Argument
+        Argument,
+        Text
     }
 
     public class Token
@@ -27,6 +27,9 @@ namespace XMLyzeLibrary.Excel
         }
     }
 
+    // Receives a file path to an excel file
+    // Reads through every row in the excel sheet
+    // Returns rows of data as a list of lists of strings
     public static class EF
     {
         public static List<List<string>> ReadExcelSheet(string filePath)
@@ -95,23 +98,28 @@ namespace XMLyzeLibrary.Excel
             return columnIndex;
         }
 
+        // Receives a row of excel data
+        // Turns the data into tokens
+        // Returns a list of the tokens
         public static List<Token> TokenizeRow(List<string> row)
         {
             var tokens = new List<Token>();
 
-            if (!string.IsNullOrEmpty(row[0]))
+            // Commands & arguments
+            if (!string.IsNullOrWhiteSpace(row[0]))
             {
-                tokens.Add(new Token { Type = TokenType.Command, Value = row[0] });
-            }
-            else
-            {
-                tokens.Add(new Token { Type = TokenType.Indentation, Value = "" });
-            }
+                // Commands
+                if (!row[0].Trim().StartsWith("//"))
+                    tokens.Add(new Token { Type = TokenType.Command, Value = row[0].Trim() });
 
-            for (int i = 1; i < row.Count; i++)
-            {
-                tokens.Add(new Token { Type = TokenType.Argument, Value = row[i] });
+                // Arguments
+                for (int i = 1; i < row.Count; i++)
+                    if (!row[i].Trim().StartsWith("//") && !string.IsNullOrWhiteSpace(row[i]))
+                        tokens.Add(new Token { Type = TokenType.Argument, Value = row[i].Trim() });
             }
+            // Text
+            else
+                tokens.Add(new Token { Type = TokenType.Text, Value = row[1] });
 
             return tokens;
         }

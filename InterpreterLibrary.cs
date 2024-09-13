@@ -28,6 +28,36 @@ namespace XMLyzeLibrary.Interpreter
         }
     }
 
+    public class CodeBlock
+    {
+        public string Command { get; set; } = string.Empty;
+        public List<string> Arguments { get; set; } = [];
+        public List<string> Texts { get; set; } = [];
+
+        public override string ToString()
+        {
+            // Start with the command name
+            var result = $"Command: {Command}\n";
+
+            // Add arguments, if any
+            if (Arguments.Any())
+            {
+                result += "Arguments:\n";
+                result += string.Join("\n", Arguments.Select(arg => $"  - {arg}"));
+                result += "\n";
+            }
+
+            // Add text blocks, if any
+            if (Texts.Any())
+            {
+                result += "Text:\n";
+                result += string.Join("\n", Texts.Select(text => $"  {text}"));
+            }
+
+            return result;
+        }
+    }
+
     public static class IF
     {
         public enum Command
@@ -40,5 +70,68 @@ namespace XMLyzeLibrary.Interpreter
             { "paragraph", Command.Paragraph },
             { "p", Command.Paragraph }
         };
+
+        // Receives a row of excel data
+        // Turns the data into tokens
+        // Returns a list of the tokens
+        public static List<Token> TokenizeRow(List<string> row)
+        {
+            var tokens = new List<Token>();
+
+            // Commands & arguments
+            if (!string.IsNullOrWhiteSpace(row[0]))
+            {
+                // Commands
+                if (!row[0].Trim().StartsWith("//"))
+                    tokens.Add(new Token { Type = TokenType.Command, Value = row[0].Trim().ToLower() });
+
+                // Arguments
+                for (int i = 1; i < row.Count; i++)
+                    if (!row[i].Trim().StartsWith("//") && !string.IsNullOrWhiteSpace(row[i]))
+                        tokens.Add(new Token { Type = TokenType.Argument, Value = row[i].Trim() });
+            }
+            // Text
+            else
+            {
+                if (!row[1].Trim().StartsWith("//"))
+                    tokens.Add(new Token { Type = TokenType.Text, Value = row[1] });
+            }
+
+            return tokens;
+        }
+
+        public static List<Token> GetTokens(List<List<string>> rows)
+        {
+            List<Token> tokens = [];
+            foreach (List<string> row in rows)
+                tokens.AddRange(IF.TokenizeRow(row));
+            return tokens;
+        }
+
+        public static List<CodeBlock> GetCodeBlocks(List<Token> tokens)
+        {
+            List<CodeBlock> codeBlocks = [];
+            CodeBlock? currentCodeBlock = null;
+            foreach (var token in tokens)
+            {
+                switch (token.Type)
+                {
+                    case TokenType.Command:
+                        currentCodeBlock = new CodeBlock { Command = token.Value };
+                        codeBlocks.Add(currentCodeBlock);
+                        break;
+
+                    case TokenType.Argument:
+                        currentCodeBlock?.Arguments.Add(token.Value);
+                        break;
+
+                    case TokenType.Text:
+                        currentCodeBlock?.Texts.Add(token.Value);
+                        break;
+                }
+            }
+
+            return codeBlocks;
+        }
     }
 }

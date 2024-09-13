@@ -80,31 +80,5 @@ namespace XMLyzeLibrary.Excel
 
             return columnIndex;
         }
-
-        // Receives a row of excel data
-        // Turns the data into tokens
-        // Returns a list of the tokens
-        public static List<Token> TokenizeRow(List<string> row)
-        {
-            var tokens = new List<Token>();
-
-            // Commands & arguments
-            if (!string.IsNullOrWhiteSpace(row[0]))
-            {
-                // Commands
-                if (!row[0].Trim().StartsWith("//"))
-                    tokens.Add(new Token { Type = TokenType.Command, Value = row[0].Trim().ToLower() });
-
-                // Arguments
-                for (int i = 1; i < row.Count; i++)
-                    if (!row[i].Trim().StartsWith("//") && !string.IsNullOrWhiteSpace(row[i]))
-                        tokens.Add(new Token { Type = TokenType.Argument, Value = row[i].Trim() });
-            }
-            // Text
-            else
-                tokens.Add(new Token { Type = TokenType.Text, Value = row[1] });
-
-            return tokens;
-        }
     }
 }

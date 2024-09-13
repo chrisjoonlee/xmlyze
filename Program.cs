@@ -50,28 +50,36 @@ namespace XMLyze
 
                 // Get tokenized data
                 List<List<string>> rows = EF.ReadExcelSheet(excelFilePath);
-                List<List<Token>> tokenRows = [];
-                foreach (List<string> row in rows)
+                List<Token> tokens = IF.GetTokens(rows);
+
+                // Parse tokens into code blocks
+                List<CodeBlock> codeBlocks = IF.GetCodeBlocks(tokens);
+
+                foreach (CodeBlock cb in codeBlocks)
                 {
-                    List<Token> tokens = EF.TokenizeRow(row);
-                    tokenRows.Add(tokens);
+                    Console.WriteLine(cb);
                 }
 
+                // Populate new Word package
+                (MainDocumentPart mainPart, WXML.Body body) = WF.PopulateNewWordPackage(newPackage, 1134, "blue");
+
                 // Read tokenized data
-                foreach (List<Token> row in tokenRows)
+                foreach (Token token in tokens)
                 {
-                    foreach (Token token in row)
+                    switch (token.Type)
                     {
-                        switch (token.Type)
-                        {
-                            // Commands
-                            case TokenType.Command:
-                                if (IF.CommandDict.TryGetValue(token.Value, out IF.Command command))
+                        // Commands
+                        case TokenType.Command:
+                            if (IF.CommandDict.TryGetValue(token.Value, out IF.Command command))
+                            {
+                                switch (command)
                                 {
-                                    Console.WriteLine(command);
+                                    case IF.Command.Paragraph:
+                                        WF.AppendToBody(body, WF.Paragraph(token.Value));
+                                        break;
                                 }
-                                break;
-                        }
+                            }
+                            break;
                     }
                 }
             }

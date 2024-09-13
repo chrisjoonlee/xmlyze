@@ -125,5 +125,13 @@ namespace XMLyzeLibrary.Word
             else
                 body.Append(paragraphs);
         }
+
+        public static Paragraph Paragraph(string text = "", string styleName = "Text")
+        {
+            return new Paragraph(
+                // ParagraphStyle(styleName),
+                new Run(new Text(text))
+            );
+        }
     }
 }

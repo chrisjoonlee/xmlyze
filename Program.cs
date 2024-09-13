@@ -10,6 +10,7 @@ using System.IO.Compression;
 using DocumentFormat.OpenXml.Presentation;
 using XMLyzeLibrary.Excel;
 using XMLyzeLibrary.Word;
+using XMLyzeLibrary.Interpreter;
 
 namespace XMLyze
 {
@@ -47,14 +48,30 @@ namespace XMLyze
                 WorksheetPart worksheetPart = workbookPart.WorksheetParts.First();
                 SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
 
+                // Get tokenized data
                 List<List<string>> rows = EF.ReadExcelSheet(excelFilePath);
+                List<List<Token>> tokenRows = [];
                 foreach (List<string> row in rows)
                 {
                     List<Token> tokens = EF.TokenizeRow(row);
-                    Console.WriteLine("-----");
-                    foreach (Token token in tokens)
+                    tokenRows.Add(tokens);
+                }
+
+                // Read tokenized data
+                foreach (List<Token> row in tokenRows)
+                {
+                    foreach (Token token in row)
                     {
-                        Console.WriteLine(token);
+                        switch (token.Type)
+                        {
+                            // Commands
+                            case TokenType.Command:
+                                if (IF.CommandDict.TryGetValue(token.Value, out IF.Command command))
+                                {
+                                    Console.WriteLine(command);
+                                }
+                                break;
+                        }
                     }
                 }
             }

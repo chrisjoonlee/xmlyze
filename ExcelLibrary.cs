@@ -6,27 +6,10 @@ using System.Linq;
 using System.IO;
 using System.IO.Compression;
 using DocumentFormat.OpenXml.Wordprocessing;
+using XMLyzeLibrary.Interpreter;
 
 namespace XMLyzeLibrary.Excel
 {
-    public enum TokenType
-    {
-        Command,
-        Argument,
-        Text
-    }
-
-    public class Token
-    {
-        public TokenType Type { get; set; }
-        public string Value { get; set; } = string.Empty;
-
-        public override string ToString()
-        {
-            return $"Token(Type: {Type}, Value: \"{Value}\")";
-        }
-    }
-
     // Receives a file path to an excel file
     // Reads through every row in the excel sheet
     // Returns rows of data as a list of lists of strings
@@ -110,7 +93,7 @@ namespace XMLyzeLibrary.Excel
             {
                 // Commands
                 if (!row[0].Trim().StartsWith("//"))
-                    tokens.Add(new Token { Type = TokenType.Command, Value = row[0].Trim() });
+                    tokens.Add(new Token { Type = TokenType.Command, Value = row[0].Trim().ToLower() });
 
                 // Arguments
                 for (int i = 1; i < row.Count; i++)

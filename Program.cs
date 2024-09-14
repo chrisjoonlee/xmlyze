@@ -1,7 +1,7 @@
 ﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using WXML = DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using System;
 using System.Linq;
@@ -35,8 +35,19 @@ using (WordprocessingDocument newPackage = WordprocessingDocument.Create(wordFil
     // Turn Excel data into code blocks
     List<IF.CodeBlock> codeBlocks = IF.GetCodeBlocksFromExcelFile(excelFilePath);
 
+    // Extract style data from code blocks
+    List<Style> styleList = [];
+    foreach (IF.CodeBlock codeBlock in codeBlocks)
+    {
+        if (codeBlock.Command == IF.Command.Style)
+        {
+            Console.WriteLine(codeBlock.Arguments);
+            styleList.Add(WF.Style(codeBlock.Arguments));
+        }
+    }
+
     // Populate new Word package
-    (MainDocumentPart mainPart, WXML.Body body) = WF.PopulateNewWordPackage(newPackage, 1134, "blue");
+    (MainDocumentPart mainPart, Body body) = WF.PopulateNewWordPackage(newPackage, styleList, 1134);
 
     // Read through code blocks
     foreach (IF.CodeBlock codeBlock in codeBlocks)

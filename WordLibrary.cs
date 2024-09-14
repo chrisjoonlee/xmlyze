@@ -7,12 +7,19 @@ using DocumentFormat.OpenXml.Packaging;
 using System.Linq;
 using System.IO;
 using System.IO.Compression;
+using XMLyzeLibrary.Interpreter;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace XMLyzeLibrary.Word
 {
     public static class WF
     {
-        public static (MainDocumentPart, Body) PopulateNewWordPackage(WordprocessingDocument package, UInt32Value? margin = null, string? border = null)
+        public static (MainDocumentPart, Body) PopulateNewWordPackage(
+            WordprocessingDocument package,
+            List<Style> styleList,
+            UInt32Value? margin = null,
+            string? border = null)
         {
             if (margin == null) margin = 1440;
 
@@ -44,9 +51,9 @@ namespace XMLyzeLibrary.Word
             numberingPart.Numbering = new();
 
             // Add styles
-            // StyleDefinitionsPart stylePart = mainPart.AddNewPart<StyleDefinitionsPart>();
-            // Styles styles = new(S.styleList);
-            // styles.Save(stylePart);
+            StyleDefinitionsPart stylePart = mainPart.AddNewPart<StyleDefinitionsPart>();
+            Styles styles = new(styleList);
+            styles.Save(stylePart);
 
             return (mainPart, body);
         }
@@ -124,6 +131,138 @@ namespace XMLyzeLibrary.Word
                     finalSectionProps.InsertBeforeSelf(paragraph);
             else
                 body.Append(paragraphs);
+        }
+
+        public static Style Style(
+            string id,
+            string name,
+            string? parentStyle = null,
+            ParagraphProperties? pPr = null,
+            StyleRunProperties? rPr = null,
+            TableProperties? tblPr = null
+        )
+        {
+            Style style = new(
+                new AutoRedefine() { Val = OnOffOnlyValues.Off },
+                new BasedOn() { Val = "Normal" },
+                new LinkedStyle() { Val = "OverdueAmountChar" },
+                new Locked() { Val = OnOffOnlyValues.Off },
+                new PrimaryStyle() { Val = OnOffOnlyValues.On },
+                new StyleHidden() { Val = OnOffOnlyValues.Off },
+                new SemiHidden() { Val = OnOffOnlyValues.Off },
+                new StyleName() { Val = name },
+                new NextParagraphStyle() { Val = "Normal" },
+                new UIPriority() { Val = 1 },
+                new UnhideWhenUsed() { Val = OnOffOnlyValues.On }
+            )
+            {
+                Type = tblPr != null ? StyleValues.Table : StyleValues.Paragraph,
+                StyleId = id,
+                CustomStyle = true,
+                Default = false
+            };
+
+            if (parentStyle != null)
+                style.AppendChild(new BasedOn() { Val = parentStyle });
+
+            if (pPr != null)
+                style.AppendChild(pPr);
+            if (rPr != null)
+                style.AppendChild(rPr);
+            if (tblPr != null)
+                style.AppendChild(tblPr);
+
+            return style;
+        }
+
+        // Receives a list of arguments from a code block with a style command
+        public static Style Style(List<IF.Argument> args)
+        {
+            string? name = null;
+            string? parent = null;
+            string color = "000000";
+            string size = "24";
+            string font = "Aptos";
+
+            foreach (IF.Argument arg in args)
+            {
+                switch (arg.Name)
+                {
+                    case "name":
+                        name = arg.Value;
+                        break;
+                    case "parent":
+                        parent = arg.Value;
+                        break;
+                    case "color":
+                        color = arg.Value;
+                        break;
+                    case "size":
+                        size = $"{int.Parse(arg.Value) * 2}";
+                        break;
+                    case "font":
+                        font = arg.Value;
+                        break;
+                    default:
+                        throw new Exception($"Cannot recognize argument called {arg.Value}");
+                }
+            }
+
+            // Check name and create id
+            if (string.IsNullOrEmpty(name))
+                throw new Exception("Style must have a name");
+            string id = ToPascalCase(name);
+
+            // Check color
+            if (string.IsNullOrEmpty(color) && !IsValidHexCode(color))
+                throw new Exception($"Color argument has an invalid hex code: {color}");
+
+
+            return Style(
+                id,
+                name,
+                parent,
+                new ParagraphProperties(
+                    new SpacingBetweenLines()
+                    {
+                        Line = "276",
+                        LineRule = LineSpacingRuleValues.Auto,
+                        Before = "0",
+                        After = "0"
+                    }
+                ),
+                new StyleRunProperties(
+                    new Color() { Val = color },
+                    new RunFonts() { Ascii = font },
+                    new FontSize() { Val = size },
+                    new FontSizeComplexScript() { Val = size }
+                )
+            );
+        }
+
+        private static string ToPascalCase(string input)
+        {
+            // Split the input string into words by non-letter characters
+            string[] words = Regex.Split(input, @"[^a-zA-Z0-9]+");
+
+            // Capitalize the first letter of each word and join them
+            TextInfo textInfo = CultureInfo.InvariantCulture.TextInfo;
+            for (int i = 0; i < words.Length; i++)
+                if (words[i].Length > 0)
+                    words[i] = textInfo.ToTitleCase(words[i].ToLower());
+
+            return string.Join(string.Empty, words);
+        }
+
+        private static bool IsValidHexCode(string? input)
+        {
+            if (input == null) return false;
+
+            // Regular expression to match exactly 6 hexadecimal characters (0-9, A-F, a-f)
+            Regex hexRegex = new Regex(@"^[0-9A-Fa-f]{6}$");
+
+            // Returns true if the input matches the hex format
+            return hexRegex.IsMatch(input);
         }
 
         public static Paragraph Paragraph(string text = "", string styleName = "Text")

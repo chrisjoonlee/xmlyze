@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Packaging;
 using System.Linq;
 using System.IO;
 using System.IO.Compression;
+using XMLyzeLibrary.Excel;
 
 namespace XMLyzeLibrary.Interpreter
 {
@@ -158,6 +159,13 @@ namespace XMLyzeLibrary.Interpreter
             }
 
             return codeBlocks;
+        }
+
+        public static List<CodeBlock> GetCodeBlocksFromExcelFile(string excelFilePath)
+        {
+            List<List<string>> rows = EF.ReadExcelSheet(excelFilePath);
+            List<Token> tokens = GetTokens(rows);
+            return GetCodeBlocks(tokens);
         }
     }
 }

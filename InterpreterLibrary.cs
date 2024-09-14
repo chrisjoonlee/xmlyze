@@ -31,26 +31,34 @@ namespace XMLyzeLibrary.Interpreter
             }
         }
 
+        // ADD NEW COMMANDS HERE
         public enum Command
         {
-            Paragraph
+            Paragraph,
+            Style
         }
 
-        public static readonly Dictionary<string, Command> CommandDict = new Dictionary<string, Command>
+        // ADD NEW COMMAND ALIASES HERE
+        public static readonly Dictionary<string, Command> CommandDict = new()
         {
             { "paragraph", Command.Paragraph },
-            { "p", Command.Paragraph }
+            { "p", Command.Paragraph },
+            {"style", Command.Style},
+            {"s", Command.Style}
         };
 
-        // Receives a row of excel data
-        // Turns the data into tokens
-        // Returns a list of the tokens
+        // ADD NEW COMMAND ARGS HERE
+        public static readonly Dictionary<Command, string[]> CommandArgsDict = new()
+        {
+            {Command.Paragraph, ["style"]},
+            {Command.Style, ["name", "parent", "color", "size", "font"]}
+        };
 
 
         public class CodeBlock
         {
             public Command Command { get; set; }
-            public List<string> Arguments { get; set; } = [];
+            public List<Argument> Arguments { get; set; } = [];
             public List<string> Texts { get; set; } = [];
 
             public void StripLeadingEmptyText()
@@ -78,7 +86,7 @@ namespace XMLyzeLibrary.Interpreter
                 if (Arguments.Count != 0)
                 {
                     result += "Arguments:\n";
-                    result += string.Join("\n", Arguments.Select(arg => $"  - {arg}"));
+                    result += string.Join("\n", Arguments.Select(arg => $"  {arg}"));
                     result += "\n";
                 }
 
@@ -90,6 +98,17 @@ namespace XMLyzeLibrary.Interpreter
                 }
 
                 return result;
+            }
+        }
+
+        public class Argument
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Value { get; set; } = string.Empty;
+
+            public override string ToString()
+            {
+                return $"{Name}: {Value}";
             }
         }
 
@@ -142,7 +161,22 @@ namespace XMLyzeLibrary.Interpreter
                         break;
 
                     case TokenType.Argument:
-                        currentCodeBlock?.Arguments.Add(token.Value);
+                        if (currentCodeBlock == null)
+                            throw new Exception("Argument not attached to a command");
+
+                        // Get name and value of argument
+                        string[] parts = token.Value.Split(['='], 2);
+                        string name = parts[0].Trim().ToLower();
+                        string value = parts[1].Trim();
+
+                        // Convert nulls to empty strings
+                        if (value == "null") value = "";
+
+                        // Check for unrecognized args
+                        if (!CommandArgsDict[currentCodeBlock.Command].Contains(name))
+                            throw new Exception($"{currentCodeBlock.Command} command does not have an argument called {name}");
+
+                        currentCodeBlock?.Arguments.Add(new Argument { Name = name, Value = value });
                         break;
 
                     case TokenType.Text:

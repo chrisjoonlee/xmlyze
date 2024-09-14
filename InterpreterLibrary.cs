@@ -10,56 +10,26 @@ using System.IO.Compression;
 
 namespace XMLyzeLibrary.Interpreter
 {
-    public enum TokenType
-    {
-        Command,
-        Argument,
-        Text
-    }
-
-    public class Token
-    {
-        public TokenType Type { get; set; }
-        public string Value { get; set; } = string.Empty;
-
-        public override string ToString()
-        {
-            return $"Token(Type: {Type}, Value: \"{Value}\")";
-        }
-    }
-
-    public class CodeBlock
-    {
-        public string Command { get; set; } = string.Empty;
-        public List<string> Arguments { get; set; } = [];
-        public List<string> Texts { get; set; } = [];
-
-        public override string ToString()
-        {
-            // Start with the command name
-            var result = $"Command: {Command}\n";
-
-            // Add arguments, if any
-            if (Arguments.Any())
-            {
-                result += "Arguments:\n";
-                result += string.Join("\n", Arguments.Select(arg => $"  - {arg}"));
-                result += "\n";
-            }
-
-            // Add text blocks, if any
-            if (Texts.Any())
-            {
-                result += "Text:\n";
-                result += string.Join("\n", Texts.Select(text => $"  {text}"));
-            }
-
-            return result;
-        }
-    }
-
     public static class IF
     {
+        public enum TokenType
+        {
+            Command,
+            Argument,
+            Text
+        }
+
+        public class Token
+        {
+            public TokenType Type { get; set; }
+            public string Value { get; set; } = string.Empty;
+
+            public override string ToString()
+            {
+                return $"Token(Type: {Type}, Value: \"{Value}\")";
+            }
+        }
+
         public enum Command
         {
             Paragraph
@@ -74,6 +44,54 @@ namespace XMLyzeLibrary.Interpreter
         // Receives a row of excel data
         // Turns the data into tokens
         // Returns a list of the tokens
+
+
+        public class CodeBlock
+        {
+            public Command Command { get; set; }
+            public List<string> Arguments { get; set; } = [];
+            public List<string> Texts { get; set; } = [];
+
+            public void StripLeadingEmptyText()
+            {
+                while (Texts.Count > 0 && string.IsNullOrEmpty(Texts[0]))
+                    Texts.RemoveAt(0);
+            }
+
+            public void StripTrailingEmptyText()
+            {
+                for (int i = Texts.Count - 1; i >= 0; i--)
+                {
+                    if (string.IsNullOrEmpty(Texts[i]))
+                        Texts.RemoveAt(i);
+                    else break;
+                }
+            }
+
+            public override string ToString()
+            {
+                // Start with the command name
+                var result = $"Command: {Command}\n";
+
+                // Add arguments, if any
+                if (Arguments.Count != 0)
+                {
+                    result += "Arguments:\n";
+                    result += string.Join("\n", Arguments.Select(arg => $"  - {arg}"));
+                    result += "\n";
+                }
+
+                // Add text blocks, if any
+                if (Texts.Count != 0)
+                {
+                    result += "Text:\n";
+                    result += string.Join("\n", Texts.Select(text => $"  {text}"));
+                }
+
+                return result;
+            }
+        }
+
         public static List<Token> TokenizeRow(List<string> row)
         {
             var tokens = new List<Token>();
@@ -112,12 +130,13 @@ namespace XMLyzeLibrary.Interpreter
         {
             List<CodeBlock> codeBlocks = [];
             CodeBlock? currentCodeBlock = null;
+
             foreach (var token in tokens)
             {
                 switch (token.Type)
                 {
                     case TokenType.Command:
-                        currentCodeBlock = new CodeBlock { Command = token.Value };
+                        currentCodeBlock = new CodeBlock { Command = CommandDict[token.Value] };
                         codeBlocks.Add(currentCodeBlock);
                         break;
 
@@ -129,6 +148,13 @@ namespace XMLyzeLibrary.Interpreter
                         currentCodeBlock?.Texts.Add(token.Value);
                         break;
                 }
+            }
+
+            foreach (CodeBlock codeBlock in codeBlocks)
+            {
+                // Strip leading and trailing empty text
+                codeBlock.StripLeadingEmptyText();
+                codeBlock.StripTrailingEmptyText();
             }
 
             return codeBlocks;

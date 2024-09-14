@@ -50,12 +50,12 @@ namespace XMLyze
 
                 // Get tokenized data
                 List<List<string>> rows = EF.ReadExcelSheet(excelFilePath);
-                List<Token> tokens = IF.GetTokens(rows);
+                List<IF.Token> tokens = IF.GetTokens(rows);
 
                 // Parse tokens into code blocks
-                List<CodeBlock> codeBlocks = IF.GetCodeBlocks(tokens);
+                List<IF.CodeBlock> codeBlocks = IF.GetCodeBlocks(tokens);
 
-                foreach (CodeBlock cb in codeBlocks)
+                foreach (IF.CodeBlock cb in codeBlocks)
                 {
                     Console.WriteLine(cb);
                 }
@@ -64,12 +64,12 @@ namespace XMLyze
                 (MainDocumentPart mainPart, WXML.Body body) = WF.PopulateNewWordPackage(newPackage, 1134, "blue");
 
                 // Read tokenized data
-                foreach (Token token in tokens)
+                foreach (IF.Token token in tokens)
                 {
                     switch (token.Type)
                     {
                         // Commands
-                        case TokenType.Command:
+                        case IF.TokenType.Command:
                             if (IF.CommandDict.TryGetValue(token.Value, out IF.Command command))
                             {
                                 switch (command)

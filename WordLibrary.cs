@@ -240,7 +240,7 @@ namespace XMLyzeLibrary.Word
             );
         }
 
-        private static string ToPascalCase(string input)
+        public static string ToPascalCase(string input)
         {
             // Split the input string into words by non-letter characters
             string[] words = Regex.Split(input, @"[^a-zA-Z0-9]+");
@@ -268,7 +268,7 @@ namespace XMLyzeLibrary.Word
         public static Paragraph Paragraph(string text = "", string styleName = "Normal")
         {
             return new Paragraph(
-                ParagraphStyle(styleName),
+                ParagraphStyle(ToPascalCase(styleName)),
                 new Run(new Text(text))
             );
         }

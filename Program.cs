@@ -37,11 +37,27 @@ using (WordprocessingDocument newPackage = WordprocessingDocument.Create(wordFil
 
     // Extract style data from code blocks
     List<Style> styleList = [];
+    List<string> styleIds = [];
     foreach (IF.CodeBlock codeBlock in codeBlocks)
     {
         if (codeBlock.Command == IF.Command.Style)
         {
             Console.WriteLine(codeBlock.Arguments);
+
+            // Record style name
+            bool nameFound = false;
+            foreach (IF.Argument arg in codeBlock.Arguments)
+            {
+                if (arg.Name == "name")
+                {
+                    styleIds.Add(WF.ToPascalCase(arg.Value));
+                    nameFound = true;
+                    break;
+                }
+            }
+            if (!nameFound) throw new Exception("Every style must have a name");
+
+            // Add style to style list
             styleList.Add(WF.Style(codeBlock.Arguments));
         }
     }
@@ -63,7 +79,12 @@ using (WordprocessingDocument newPackage = WordprocessingDocument.Create(wordFil
                 {
                     if (arg.Name == "style")
                     {
-                        Console.WriteLine(arg.Value);
+                        // Check that style name exists
+                        bool styleIdFound = false;
+                        foreach (string styleId in styleIds)
+                            if (WF.ToPascalCase(arg.Value) == styleId) styleIdFound = true;
+                        if (!styleIdFound) throw new Exception($"Could not find style name {arg.Value} for {codeBlock.Command} command");
+
                         styleName = arg.Value;
                     }
                 }

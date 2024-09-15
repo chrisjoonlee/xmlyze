@@ -265,11 +265,18 @@ namespace XMLyzeLibrary.Word
             return hexRegex.IsMatch(input);
         }
 
-        public static Paragraph Paragraph(string text = "", string styleName = "Text")
+        public static Paragraph Paragraph(string text = "", string styleName = "Normal")
         {
             return new Paragraph(
-                // ParagraphStyle(styleName),
+                ParagraphStyle(styleName),
                 new Run(new Text(text))
+            );
+        }
+
+        public static ParagraphProperties ParagraphStyle(string styleId)
+        {
+            return new ParagraphProperties(
+                new ParagraphStyleId() { Val = styleId }
             );
         }
     }

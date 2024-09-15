@@ -55,9 +55,21 @@ using (WordprocessingDocument newPackage = WordprocessingDocument.Create(wordFil
         Console.WriteLine(codeBlock);
         switch (codeBlock.Command)
         {
+            // PARAGRAPH COMMAND
             case IF.Command.Paragraph:
+                // Process args
+                string styleName = "Normal";
+                foreach (IF.Argument arg in codeBlock.Arguments)
+                {
+                    if (arg.Name == "style")
+                    {
+                        Console.WriteLine(arg.Value);
+                        styleName = arg.Value;
+                    }
+                }
+
                 foreach (string text in codeBlock.Texts)
-                    WF.AppendToBody(body, WF.Paragraph(text));
+                    WF.AppendToBody(body, WF.Paragraph(text, styleName));
                 break;
         }
     }

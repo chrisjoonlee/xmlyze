@@ -216,6 +216,8 @@ namespace XMLyzeLibrary.Word
             // Check color
             if (string.IsNullOrEmpty(color) && !IsValidHexCode(color))
                 throw new Exception($"Color argument has an invalid hex code: {color}");
+            if (color.Length == 3)
+                color = ConvertToSixDigitHex(color);
 
 
             return Style(
@@ -263,6 +265,17 @@ namespace XMLyzeLibrary.Word
 
             // Returns true if the input matches the hex format
             return hexRegex.IsMatch(input);
+        }
+
+        private static string ConvertToSixDigitHex(string hex3)
+        {
+            if (hex3.Length != 3) throw new ArgumentException("Input must be a 3-digit hex code.");
+
+            return string.Concat(
+                hex3[0], hex3[0],
+                hex3[1], hex3[1],
+                hex3[2], hex3[2]
+            );
         }
 
         public static Paragraph Paragraph(string text = "", string styleName = "Normal")

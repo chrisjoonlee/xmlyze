@@ -169,9 +169,6 @@ namespace XMLyzeLibrary.Interpreter
                         string name = parts[0].Trim().ToLower();
                         string value = parts[1].Trim();
 
-                        // Convert nulls to empty strings
-                        if (value == "null") value = "";
-
                         // Check for unrecognized args
                         if (!CommandArgsDict[currentCodeBlock.Command].Contains(name))
                             throw new Exception($"{currentCodeBlock.Command} command does not have an argument called {name}");

@@ -128,7 +128,7 @@ namespace XMLyzeLibrary.Interpreter
 
                     case TokenType.Argument:
                         if (currentCodeBlock == null)
-                            throw new Exception("Argument not attached to a command");
+                            throw new Exception($"Argument {token.Value} must belong to a command");
 
                         // Get name and value of argument
                         string[] parts = token.Value.Split(['='], 2);
@@ -139,9 +139,14 @@ namespace XMLyzeLibrary.Interpreter
                         if (!CommandArgsDict[currentCodeBlock.Command].Contains(name))
                             throw new Exception($"{currentCodeBlock.Command} command does not have an argument called {name}");
 
-                        currentCodeBlock?.Arguments.Add(new Argument { Name = name, Value = value });
+                        currentCodeBlock?.Arguments.Add(new Argument
+                        {
+                            Name = name,
+                            Value = value
+                        });
                         break;
 
+                    case TokenType.Image:
                     case TokenType.Text:
                         currentCodeBlock?.Body.Add(token);
                         break;
@@ -188,81 +193,11 @@ namespace XMLyzeLibrary.Interpreter
                 // Read sheet data
                 foreach (Row row in sheetData.Elements<Row>())
                 {
-                    // int colCount = 0;
-
                     List<Cell> cells = row.Elements<Cell>().ToList();
-                    bool isCommandRow = false;
-
-                    for (int i = 0; i < cells.Count; i++)
-                    {
-                        Cell cell = cells[i];
-
-                        // Create empty tokens for empty cells
-                        // int colIndex = EF.GetColumnIndex(cell.CellReference!);
-                        // while (colCount < colIndex - 1)
-                        // {
-                        //     tokens.Add(new Token
-                        //     {
-                        //         Type = TokenType.Text,
-                        //         Value = ""
-                        //     });
-                        //     colCount++;
-                        // }
-
-                        string cellValue = EF.GetCellValue(cell, workbookPart);
-
-                        // Comments
-                        if (cellValue.Trim().StartsWith("//")) { }
-                        // Empty space
-                        else if (string.IsNullOrWhiteSpace(cellValue))
-                        {
-                            if (!isCommandRow)
-                            {
-                                tokens.Add(new Token
-                                {
-                                    Type = TokenType.Text,
-                                    Value = ""
-                                });
-                            }
-
-                            if (i == 0) isCommandRow = false;
-                        }
-                        else
-                        {
-                            // Commands
-                            if (i == 0)
-                            {
-                                tokens.Add(new Token { Type = TokenType.Command, Value = cellValue.Trim().ToLower() });
-                                isCommandRow = true;
-                            }
-                            // Arguments
-                            else if (isCommandRow)
-                            {
-                                tokens.Add(new Token { Type = TokenType.Argument, Value = cellValue.Trim() });
-                            }
-                            else
-                            {
-                                // Images
-                                if (EF.IsImageCell(cell))
-                                {
-                                    tokens.Add(new Token
-                                    {
-                                        Type = TokenType.Image,
-                                        Value = EF.GetCellValue(cell, workbookPart)
-                                    });
-                                }
-                                // Text
-                                else
-                                {
-                                    tokens.Add(new Token
-                                    {
-                                        Type = TokenType.Text,
-                                        Value = EF.GetCellValue(cell, workbookPart)
-                                    });
-                                }
-                            }
-                        }
-                    }
+                    if (!string.IsNullOrEmpty(EF.GetCellValue(cells[0], workbookPart)))
+                        tokens.AddRange(GetTokensFromCommandRow(cells, workbookPart));
+                    else
+                        tokens.Add(GetTokenFromBodyRow(cells, workbookPart));
                 }
             }
 
@@ -272,6 +207,66 @@ namespace XMLyzeLibrary.Interpreter
             Console.WriteLine();
 
             return tokens;
+        }
+
+        private static List<Token> GetTokensFromCommandRow(List<Cell> row, WorkbookPart workbookPart)
+        {
+            List<Token> tokens = [];
+
+            // Command
+            tokens.Add(new Token()
+            {
+                Type = TokenType.Command,
+                Value = EF.GetCellValue(row[0], workbookPart)
+            });
+
+            // Arguments
+            for (int i = 1; i < row.Count; i++)
+            {
+                string value = EF.GetCellValue(row[i], workbookPart);
+                if (!string.IsNullOrEmpty(value))
+                {
+                    tokens.Add(new Token()
+                    {
+                        Type = TokenType.Argument,
+                        Value = value
+                    });
+                }
+            }
+
+            return tokens;
+        }
+
+        private static Token GetTokenFromBodyRow(List<Cell> row, WorkbookPart workbookPart)
+        {
+            foreach (Cell cell in row)
+            {
+                if (string.IsNullOrEmpty(EF.GetCellValue(cell, workbookPart))) { }
+                // Image
+                else if (EF.IsImageCell(cell))
+                {
+                    return new Token
+                    {
+                        Type = TokenType.Image,
+                        Value = EF.GetCellValue(cell, workbookPart)
+                    };
+                }
+                // Text
+                else
+                {
+                    return new Token
+                    {
+                        Type = TokenType.Text,
+                        Value = EF.GetCellValue(cell, workbookPart)
+                    };
+                }
+            }
+
+            return new Token
+            {
+                Type = TokenType.Text,
+                Value = ""
+            };
         }
     }
 }

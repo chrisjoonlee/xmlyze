@@ -143,6 +143,8 @@ namespace XMLyzeLibrary.Interpreter
             List<Token> tokens = [];
             foreach (List<string> row in rows)
                 tokens.AddRange(IF.TokenizeRow(row));
+            foreach (Token token in tokens)
+                Console.WriteLine(token);
             return tokens;
         }
 
@@ -184,6 +186,8 @@ namespace XMLyzeLibrary.Interpreter
 
             foreach (CodeBlock codeBlock in codeBlocks)
             {
+                if (codeBlock.Texts.Count == 1) continue;
+
                 // Strip leading and trailing empty text
                 codeBlock.StripLeadingEmptyText();
                 codeBlock.StripTrailingEmptyText();

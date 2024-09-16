@@ -292,5 +292,113 @@ namespace XMLyzeLibrary.Word
                 new ParagraphStyleId() { Val = styleId }
             );
         }
+
+        public static Paragraph Image(
+            string fileName,
+            string relationshipId,
+            Int64Value width,
+            Int64Value height,
+            string? styleId = null,
+            bool rounded = false)
+        {
+            Paragraph paragraph = new(new Run(
+                Drawing(fileName, relationshipId, width, height, rounded)
+            ));
+
+            if (styleId != null)
+                paragraph.PrependChild(ParagraphStyle(styleId));
+
+            return paragraph;
+        }
+
+        private static UInt32Value docPropertiesId = 0;
+
+        public static Drawing Drawing(string fileName, string relationshipId, Int64Value width, Int64Value height, bool rounded = false)
+        {
+            docPropertiesId++;
+
+            return new Drawing(
+                new DW.Inline(
+                    new DW.Extent() { Cx = width, Cy = height },
+                    new DW.EffectExtent()
+                    {
+                        LeftEdge = 0L,
+                        TopEdge = 0L,
+                        RightEdge = 0L,
+                        BottomEdge = 0L
+                    },
+                    new DW.DocProperties()
+                    {
+                        Id = docPropertiesId,
+                        Name = fileName
+                    },
+                    new DW.NonVisualGraphicFrameDrawingProperties(
+                        new D.GraphicFrameLocks() { NoChangeAspect = true }),
+                    new D.Graphic(
+                        new D.GraphicData(
+                            new DP.Picture(
+                                new DP.NonVisualPictureProperties(
+                                    new DP.NonVisualDrawingProperties()
+                                    {
+                                        Id = docPropertiesId,
+                                        Name = fileName
+                                    },
+                                    new DP.NonVisualPictureDrawingProperties()),
+                                new DP.BlipFill(
+                                    new D.Blip(
+                                        new D.BlipExtensionList(
+                                            new D.BlipExtension()
+                                            {
+                                                Uri =
+                                                "{28A0092B-C50C-407E-A947-70E740481C1C}"
+                                            })
+                                    )
+                                    {
+                                        Embed = relationshipId,
+                                        CompressionState = D.BlipCompressionValues.Print
+                                    },
+                                    new D.Stretch(
+                                        new D.FillRectangle())),
+                                new DP.ShapeProperties(
+                                    new D.Transform2D(
+                                        new D.Offset() { X = 0L, Y = 0L },
+                                        new D.Extents() { Cx = width, Cy = height }),
+                                    new D.PresetGeometry(
+                                        new D.AdjustValueList()
+                                    )
+                                    { Preset = rounded ? D.ShapeTypeValues.RoundRectangle : D.ShapeTypeValues.Rectangle }))
+                        )
+                        { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
+                )
+                {
+                    DistanceFromTop = (UInt32Value)0U,
+                    DistanceFromBottom = (UInt32Value)0U,
+                    DistanceFromLeft = (UInt32Value)0U,
+                    DistanceFromRight = (UInt32Value)0U,
+                    EditId = RandomEditId()
+                });
+        }
+
+        public static string RandomEditId()
+        {
+            // Generate a random hexadecimal string
+            byte[] bytes = new byte[4];
+            new Random().NextBytes(bytes);
+
+            // Convert byte array to hexadecimal string
+            string randomHex = BitConverter.ToString(bytes).Replace("-", "");
+
+            // Ensure the string has exactly 8 characters
+            if (randomHex.Length < 8)
+            {
+                randomHex = randomHex.PadLeft(8, '0');
+            }
+            else if (randomHex.Length > 8)
+            {
+                randomHex = randomHex.Substring(0, 8);
+            }
+
+            return randomHex.ToUpper();
+        }
     }
 }

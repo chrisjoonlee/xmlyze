@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("xmlyze")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+22846789a9790df76d12ef064a3b9eafefbb7221")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+edce0b8aa20b815de2b5e8619d03adb8a131ab56")]
 [assembly: System.Reflection.AssemblyProductAttribute("xmlyze")]
 [assembly: System.Reflection.AssemblyTitleAttribute("xmlyze")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

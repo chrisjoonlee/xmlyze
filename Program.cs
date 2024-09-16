@@ -32,6 +32,9 @@ using (WordprocessingDocument newPackage = WordprocessingDocument.Create(wordFil
     if (spreadsheetDocument is null)
         throw new ArgumentNullException(nameof(spreadsheetDocument));
 
+    // Access the media folder and extract images
+    List<string> imageFilePaths = EF.ExtractImages(excelFilePath, imagesFolderPath);
+
     // Turn Excel data into code blocks
     List<IF.CodeBlock> codeBlocks = IF.GetCodeBlocksFromExcelFile(excelFilePath);
 
@@ -89,8 +92,8 @@ using (WordprocessingDocument newPackage = WordprocessingDocument.Create(wordFil
                     }
                 }
 
-                foreach (string text in codeBlock.Texts)
-                    WF.AppendToBody(body, WF.Paragraph(text, styleName));
+                foreach (IF.Token item in codeBlock.Body)
+                    WF.AppendToBody(body, WF.Paragraph(item.Value, styleName));
                 break;
         }
     }
